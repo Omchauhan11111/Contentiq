@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ContentIQ — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* =============================================
+   ContentIQ Dashboard — Theme Variables
+   ============================================= */
+:root{
+  --red:#E8194B;--red-dark:#C5103A;--red-light:#FF4D75;
+  --bg:#F4F5F9;--surface:#fff;--sidebar:#fff;
+  --border:#E8EAF0;--text:#1A1D2E;--muted:#7B8297;
+  --success:#10B981;--warning:#F59E0B;--info:#3B82F6;--danger:#EF4444;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --r:12px;--r-sm:8px;
+  --sidebar-w:220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── Sidebar ──────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);
+  position:fixed;top:0;left:0;bottom:0;z-index:200;display:flex;flex-direction:column;
+  transition:width .25s,transform .3s;box-shadow:2px 0 8px rgba(0,0,0,.04);
+}
+.sidebar.collapsed{width:64px;}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:18px 16px;border-bottom:1px solid var(--border);min-height:66px;}
+.sb-logo-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;flex-shrink:0;}
+.sb-logo-text{font-size:16px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;transition:opacity .2s;}
+.sb-logo-text em{color:var(--red);font-style:normal;}
+.sidebar.collapsed .sb-logo-text{opacity:0;width:0;}
+
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.sb-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B6CB;padding:12px 8px 5px;white-space:nowrap;overflow:hidden;transition:opacity .2s;}
+.sidebar.collapsed .sb-section{opacity:0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--muted);cursor:pointer;transition:all .18s;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-decoration:none;border:none;background:none;font-family:inherit;width:100%;font-size:13.5px;}
+.nav-item:hover{background:#F4F5F9;color:var(--text);}
+.nav-item.active{background:rgba(232,25,75,.08);color:var(--red);}
+.nav-icon{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.nav-icon svg{stroke:#7B8297;transition:stroke .18s;width:18px;height:18px;}
+.nav-item:hover .nav-icon svg,.nav-item.active .nav-icon svg{stroke:var(--red);}
+.nav-label{font-size:13.5px;font-weight:500;transition:opacity .2s;}
+.sidebar.collapsed .nav-label{opacity:0;width:0;}
+
+.sb-footer{padding:12px 10px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:all .18s;}
+.user-card:hover{background:#F4F5F9;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red-light));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;}
+.user-info{overflow:hidden;transition:opacity .2s;}
+.sidebar.collapsed .user-info{opacity:0;width:0;}
+.user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role{font-size:11px;color:var(--muted);}
+
+.collapse-btn{position:absolute;top:50%;right:-12px;width:24px;height:24px;background:var(--surface);border:1.5px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);transform:translateY(-50%);z-index:201;transition:all .2s;}
+.collapse-btn:hover{background:var(--red);border-color:var(--red);color:white;}
+.sidebar.collapsed .collapse-btn svg{transform:rotate(180deg);}
+
+/* ── Mobile sidebar overlay ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:199;}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.mobile-open{transform:translateX(0);}
+  .sidebar-overlay.show{display:block;}
+  .collapse-btn{display:none;}
+}
+
+/* ── Topbar ──────────────────────────────────── */
+.topbar{height:66px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.hamburger{display:none;width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:none;cursor:pointer;align-items:center;justify-content:center;color:var(--muted);}
+@media(max-width:768px){.hamburger{display:flex;}}
+.page-title{font-size:16px;font-weight:700;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.icon-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--muted);position:relative;}
+.icon-btn:hover{border-color:var(--red);color:var(--red);}
+.icon-btn svg{stroke:currentColor;width:17px;height:17px;}
+.notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid white;}
+.user-chip{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;cursor:pointer;transition:all .18s;}
+.user-chip:hover{background:#F4F5F9;}
+.chip-name{font-size:13px;font-weight:600;text-align:right;}
+.chip-role{font-size:11px;color:var(--muted);}
+
+/* ── Layout ──────────────────────────────────── */
+.main{margin-left:var(--sidebar-w);transition:margin-left .25s;min-height:100vh;}
+.main.sb-collapsed{margin-left:64px;}
+@media(max-width:768px){.main{margin-left:0!important;}}
+.page-wrap{padding:22px 20px;}
+
+/* ── Tabs ──────────────────────────────────── */
+.page-tabs{display:flex;gap:4px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);}
+.p-tab{padding:14px 18px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;transition:all .18s;white-space:nowrap;}
+.p-tab:hover{color:var(--text);}
+.p-tab.active{color:var(--red);border-bottom-color:var(--red);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ── Stats Row ──────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+@media(max-width:1100px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.stats-row{grid-template-columns:1fr;}}
+.stat-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc,var(--red));}
+.stat-val{font-size:28px;font-weight:800;line-height:1;}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:4px;font-weight:500;}
+.stat-chg{font-size:11px;font-weight:600;margin-top:8px;color:var(--muted);}
+
+/* ── Cards ──────────────────────────────────── */
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;border-bottom:1px solid var(--border);}
+.card-title{font-size:14px;font-weight:700;}
+.card-sub{font-size:12px;color:var(--muted);}
+.card-body{padding:16px 20px;}
+
+/* ── Grid Layouts ──────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 300px;gap:18px;align-items:start;}
+@media(max-width:1100px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* ── Topics Table ──────────────────────────── */
+.topic-table{width:100%;border-collapse:collapse;}
+.topic-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.topic-table td{padding:13px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top;}
+.topic-table tr:last-child td{border-bottom:none;}
+.topic-table tr:hover td{background:#FAFBFC;}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-fresh{background:rgba(59,130,246,.1);color:#2563EB;}
+.badge-evergreen{background:rgba(16,185,129,.1);color:#059669;}
+.badge-competitor{background:rgba(245,158,11,.1);color:#D97706;}
+.badge-broad{background:#F4F5F9;color:var(--muted);}
+.badge-narrow{background:rgba(232,25,75,.08);color:var(--red);}
+.score-pill{display:inline-flex;align-items:center;justify-content:center;width:36px;height:24px;border-radius:20px;font-size:12px;font-weight:700;}
+.score-hi{background:rgba(16,185,129,.1);color:#059669;}
+.score-mid{background:rgba(245,158,11,.1);color:#D97706;}
+.score-lo{background:rgba(239,68,68,.1);color:#DC2626;}
+
+/* ── Green Light Toggle ──────────────────────── */
+.gl-toggle{position:relative;width:40px;height:22px;cursor:pointer;}
+.gl-toggle input{opacity:0;width:0;height:0;}
+.gl-slider{position:absolute;inset:0;background:#E8EAF0;border-radius:11px;transition:.3s;}
+.gl-slider::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:3px;left:3px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.gl-toggle input:checked + .gl-slider{background:var(--success);}
+.gl-toggle input:checked + .gl-slider::before{transform:translateX(18px);}
+
+/* ── Posts Cards ──────────────────────────── */
+.post-card{border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px;background:var(--surface);transition:all .2s;}
+.post-card:hover{box-shadow:var(--shadow-lg);border-color:#D0D3E0;}
+.post-card-head{display:flex;align-items:start;justify-content:space-between;margin-bottom:12px;gap:12px;}
+.post-title{font-size:14px;font-weight:700;color:var(--text);}
+.post-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.post-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+.post-tab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:none;font-family:inherit;color:var(--muted);transition:all .18s;}
+.post-tab.active{background:var(--red);border-color:var(--red);color:white;}
+.post-body{font-size:13.5px;line-height:1.65;color:var(--text);white-space:pre-wrap;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;padding:14px;max-height:240px;overflow-y:auto;}
+.post-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap;}
+.btn-copy{padding:8px 18px;background:var(--red);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.btn-copy:hover{background:var(--red-dark);}
+.btn-copy.copied{background:var(--success);}
+.qc-pass{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--success);}
+.qc-fail{color:var(--danger);}
+
+/* ── Config Form ──────────────────────────── */
+.config-section{margin-bottom:28px;}
+.config-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:640px){.config-grid{grid-template-columns:1fr;}}
+.form-group{margin-bottom:0;}
+.form-group.full{grid-column:1/-1;}
+label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;}
+input[type="text"],input[type="email"],input[type="url"],input[type="time"],select,textarea{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:13.5px;font-family:inherit;color:var(--text);background:#FAFBFC;
+  transition:all .2s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--red);background:white;box-shadow:0 0 0 3px rgba(232,25,75,.08);}
+textarea{resize:vertical;min-height:68px;}
+.field-hint{font-size:11.5px;color:#9BA3BC;margin-top:4px;}
+.btn-save{padding:12px 28px;background:var(--red);border:none;border-radius:8px;color:white;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;}
+.btn-save:hover{background:var(--red-dark);}
+
+/* ── Trigger Section ──────────────────────── */
+.trigger-box{background:linear-gradient(135deg,rgba(232,25,75,.06),rgba(232,25,75,.02));border:1.5px solid rgba(232,25,75,.2);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:18px;}
+.trigger-title{font-size:16px;font-weight:800;margin-bottom:6px;}
+.trigger-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+.btn-trigger{padding:14px 32px;background:var(--red);border:none;border-radius:10px;color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.btn-trigger:hover:not(:disabled){background:var(--red-dark);transform:translateY(-1px);box-shadow:0 6px 20px rgba(232,25,75,.3);}
+.btn-trigger:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.trigger-status{margin-top:14px;font-size:13px;padding:10px 16px;border-radius:8px;display:none;}
+.trigger-status.show{display:block;}
+.trigger-status.ok{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;}
+.trigger-status.err{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;}
+
+/* ── Schedule Info ──────────────────────────── */
+.schedule-info{background:#F4F5F9;border-radius:8px;padding:14px 16px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.schedule-info svg{flex-shrink:0;stroke:var(--muted);}
+
+/* ── Activity Feed ──────────────────────────── */
+.act-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(232,234,240,.6);}
+.act-item:last-child{border-bottom:none;}
+.act-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.act-text{font-size:13px;line-height:1.4;}
+.act-time{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── Empty States ──────────────────────────── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty svg{width:40px;height:40px;stroke:#D1D5DB;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.empty-sub{font-size:13px;line-height:1.5;}
+
+/* ── Loading Skeleton ──────────────────────── */
+.skeleton{background:linear-gradient(90deg,#F0F1F6 25%,#E8EAF0 50%,#F0F1F6 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── Toast Notification ─────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1A1D2E;color:white;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#10B981;}
+.toast.error{background:#EF4444;}
+
+/* ── Logout Dropdown ────────────────────────── */
+.user-dropdown{position:relative;}
+.dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);min-width:180px;overflow:hidden;display:none;z-index:500;}
+.dropdown-menu.open{display:block;}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;cursor:pointer;transition:background .18s;color:var(--text);}
+.dropdown-item:hover{background:#F4F5F9;}
+.dropdown-item.danger{color:var(--danger);}
+.dropdown-item svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0;}
+.dropdown-divider{height:1px;background:var(--border);}
+
+/* ── Responsive tweaks ──────────────────────── */
+@media(max-width:640px){
+  .page-wrap{padding:16px 14px;}
+  .topic-table thead{display:none;}
+  .topic-table td{display:block;padding:8px 12px;}
+  .topic-table td::before{content:attr(data-label)' ';font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ── SIDEBAR ──────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <!-- Logo -->
+  <div class="sb-logo">
+    <div class="sb-logo-icon">C</div>
+    <div class="sb-logo-text">Content<em>IQ</em></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sb-nav">
+    <div class="sb-section">Main</div>
+    <button class="nav-item active" onclick="switchTab('overview', this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+      <span class="nav-label">Overview</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('topics', this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+      <span class="nav-label">Review Topics</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('posts', this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+      <span class="nav-label">Generated Posts</span>
+    </button>
+
+    <div class="sb-section">Settings</div>
+    <button class="nav-item" onclick="switchTab('config', this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></span>
+      <span class="nav-label">Profile Config</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('trigger', this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+      <span class="nav-label">Run Workflow</span>
+    </button>
+  </nav>
+
+  <!-- User footer -->
+  <div class="sb-footer">
+    <div class="user-card" onclick="toggleDropdown()">
+      <div class="avatar" id="sidebarAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">Loading...</div>
+        <div class="user-role" id="sidebarEmail">...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapse toggle -->
+  <div class="collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ──────────────────────────────────── -->
+<div class="main" id="mainContent">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openMobileSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="page-title" id="pageTitle">Overview</span>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="user-dropdown">
+        <div class="user-chip" onclick="toggleDropdown()">
+          <div style="text-align:right;">
+            <div class="chip-name" id="topbarName">Loading...</div>
+            <div class="chip-role">Content Leader</div>
+          </div>
+          <div class="avatar" id="topbarAvatar">?</div>
+        </div>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <div class="dropdown-item" onclick="switchTab('config', null)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            Profile Config
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item danger" onclick="handleLogout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Tabs -->
+  <div class="page-tabs" id="pageTabs">
+    <button class="p-tab active" onclick="switchTab('overview', this)" data-tab="overview">Overview</button>
+    <button class="p-tab" onclick="switchTab('topics', this)" data-tab="topics">Review Topics</button>
+    <button class="p-tab" onclick="switchTab('posts', this)" data-tab="posts">Generated Posts</button>
+    <button class="p-tab" onclick="switchTab('config', this)" data-tab="config">Profile Config</button>
+    <button class="p-tab" onclick="switchTab('trigger', this)" data-tab="trigger">Run Workflow</button>
+  </div>
+
+  <div class="page-wrap">
+
+    <!-- ══════════════════════════════════════════
+         TAB: OVERVIEW
+    ══════════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-overview">
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card" style="--acc:var(--red)">
+          <div class="stat-val" id="statTopics">—</div>
+          <div class="stat-lbl">Topics Generated</div>
+          <div class="stat-chg" id="statTopicsChg">This week</div>
+        </div>
+        <div class="stat-card" style="--acc:var(--success)">
+          <div class="stat-val" id="statApproved">—</div>
+          <div class="stat-lbl">Topics Approved</div>
+          <div class="stat-chg" id="statApprovalRate">Approval rate: —%</div>
+        </div>
+        <div class="stat-card" style="--acc:var(--info)">
+          <div class="stat-val" id="statPosts">—</div>
+          <div class="stat-lbl">Posts Generated</div>
+          <div class="stat-chg">Total all time</div>
+        </div>
+        <div class="stat-card" style="--acc:var(--warning)">
+          <div class="stat-val" id="statRecommended">—</div>
+          <div class="stat-lbl">Recommended Posts</div>
+          <div class="stat-chg">Ready to publish</div>
+        </div>
+      </div>
+
+      <!-- Main overview grid -->
+      <div class="two-col">
+        <!-- Recent Topics -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Recent Topics</div>
+              <div class="card-sub">Latest AI-generated topic ideas</div>
+            </div>
+            <button class="btn-save" style="padding:7px 16px;font-size:12px;" onclick="switchTab('topics', null)">View all</button>
+          </div>
+          <div class="card-body" id="recentTopicsList">
+            <div class="empty">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              <div class="empty-title">No topics yet</div>
+              <div class="empty-sub">Trigger a workflow run to generate your first topics</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right sidebar -->
+        <div>
+          <!-- Quick Actions -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-head"><div class="card-title">Quick Actions</div></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+              <button class="btn-trigger" style="width:100%;justify-content:center;padding:12px;" onclick="switchTab('trigger', null)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Run Workflow Now
+              </button>
+              <button class="btn-save" style="width:100%;padding:11px;background:#F4F5F9;color:var(--text);" onclick="switchTab('topics', null)">
+                Review &amp; Approve Topics
+              </button>
+              <button class="btn-save" style="width:100%;padding:11px;background:#F4F5F9;color:var(--text);" onclick="switchTab('posts', null)">
+                Copy Generated Posts
+              </button>
+            </div>
+          </div>
+
+          <!-- Schedule Info -->
+          <div class="card">
+            <div class="card-head"><div class="card-title">Your Schedule</div></div>
+            <div class="card-body">
+              <div class="schedule-info">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div id="scheduleDisplay">Loading schedule...</div>
+              </div>
+              <div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">
+                The workflow runs automatically at your scheduled time. You can also trigger it manually from <strong>Run Workflow</strong> tab.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB: REVIEW TOPICS
+    ══════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-topics">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Weekly Topics — Review &amp; Approve</div>
+            <div class="card-sub">Toggle the green light to approve topics for post generation. Minimum 1 topic required.</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <select id="weekFilter" onchange="loadTopics()" style="font-size:12px;padding:6px 10px;border-radius:8px;">
+              <option value="">This week</option>
+            </select>
+          </div>
+        </div>
+        <div id="topicsTableWrap">
+          <div class="empty" style="padding:60px 20px;">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <div class="empty-title">No topics generated yet</div>
+            <div class="empty-sub">Go to "Run Workflow" tab and trigger a run to generate this week's topics</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB: GENERATED POSTS
+    ══════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-posts">
+      <div class="card-head" style="padding:0 0 16px;margin-bottom:0;">
+        <div>
+          <div class="card-title" style="font-size:16px;">Generated LinkedIn Posts</div>
+          <div class="card-sub">Each post has 3 variations. Copy the recommended version to publish.</div>
+        </div>
+      </div>
+      <div id="postsWrap">
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="empty-title">No posts generated yet</div>
+          <div class="empty-sub">Approve topics in "Review Topics" then trigger "Generate Posts" in Run Workflow tab</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB: PROFILE CONFIG
+    ══════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-config">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Profile Configuration</div>
+            <div class="card-sub">All settings passed to your n8n AI workflow</div>
+          </div>
+          <div class="card-body">
+
+            <!-- Account -->
+            <div class="config-section">
+              <div class="config-section-title">Account</div>
+              <div class="config-grid">
+                <div class="form-group"><label>First Name</label><input type="text" id="cfg_first"/></div>
+                <div class="form-group"><label>Last Name</label><input type="text" id="cfg_last"/></div>
+                <div class="form-group full"><label>Display Name (used by AI)</label><input type="text" id="cfg_leader_name"/></div>
+                <div class="form-group full"><label>Timezone</label>
+                  <select id="cfg_timezone">
+                    <option value="Asia/Kolkata">India (IST — UTC+5:30)</option>
+                    <option value="Asia/Singapore">Singapore (SGT — UTC+8)</option>
+                    <option value="Asia/Tokyo">Japan (JST — UTC+9)</option>
+                    <option value="Asia/Shanghai">China (CST — UTC+8)</option>
+                    <option value="Asia/Jakarta">Indonesia (WIB — UTC+7)</option>
+                    <option value="Asia/Kuala_Lumpur">Malaysia (MYT — UTC+8)</option>
+                    <option value="Asia/Bangkok">Thailand (ICT — UTC+7)</option>
+                    <option value="Asia/Dubai">UAE (GST — UTC+4)</option>
+                    <option value="Europe/London">UK (GMT/BST)</option>
+                    <option value="Europe/Paris">Europe CET (UTC+1)</option>
+                    <option value="America/New_York">US Eastern (EST — UTC-5)</option>
+                    <option value="America/Los_Angeles">US Pacific (PST — UTC-8)</option>
+                    <option value="Australia/Sydney">Australia (AEDT — UTC+11)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- LinkedIn & Company -->
+            <div class="config-section">
+              <div class="config-section-title">LinkedIn &amp; Company</div>
+              <div class="config-grid">
+                <div class="form-group full"><label>LinkedIn Profile URL</label><input type="url" id="cfg_linkedin_url" placeholder="https://linkedin.com/in/..."/></div>
+                <div class="form-group full"><label>Company Website</label><input type="url" id="cfg_company_website" placeholder="https://yourcompany.com"/></div>
+                <div class="form-group full"><label>Notification Email</label><input type="email" id="cfg_notify_email" placeholder="alerts@company.com"/>
+                  <div class="field-hint">Slack and email alerts go to this address</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Target Audience -->
+            <div class="config-section">
+              <div class="config-section-title">Target Audience (ICP)</div>
+              <div class="config-grid">
+                <div class="form-group"><label>Your Service / Product</label><input type="text" id="cfg_target_service" placeholder="ESG Reporting, BI Platform..."/></div>
+                <div class="form-group"><label>Target Region</label><input type="text" id="cfg_target_region" placeholder="Asia Pacific, Southeast Asia..."/></div>
+                <div class="form-group full"><label>Ideal Client Job Titles</label><input type="text" id="cfg_icp_titles" placeholder="CFO, CSO, Regional Director, CPO"/></div>
+                <div class="form-group full"><label>ICP Description</label><textarea id="cfg_icp_description" placeholder="Who is your ideal client? What problems do they face?"></textarea></div>
+              </div>
+            </div>
+
+            <!-- Writing Voice -->
+            <div class="config-section">
+              <div class="config-section-title">Writing Voice</div>
+              <div class="config-grid">
+                <div class="form-group full"><label>How you open posts (hook style)</label><input type="text" id="cfg_voice_hook_style" placeholder="Opens with a bold data point or contrarian claim"/></div>
+                <div class="form-group"><label>Sentence style</label><input type="text" id="cfg_voice_sentence_len" placeholder="Mix of short and medium"/></div>
+                <div class="form-group"><label>Opinion vs facts balance</label><input type="text" id="cfg_voice_opinion_density" placeholder="Moderate — facts + one POV"/></div>
+                <div class="form-group"><label>Vocabulary style</label><input type="text" id="cfg_voice_vocabulary" placeholder="Professional but not academic"/></div>
+                <div class="form-group"><label>How you end posts (CTA pattern)</label><input type="text" id="cfg_voice_cta_pattern" placeholder="Question to audience"/></div>
+              </div>
+            </div>
+
+            <!-- Competitors & Filters -->
+            <div class="config-section">
+              <div class="config-section-title">Competitors &amp; Topic Filters</div>
+              <div class="config-grid">
+                <div class="form-group full"><label>Competitor LinkedIn handles (comma separated)</label><input type="text" id="cfg_competitor_handles" placeholder="TMF Group, Vistra, BoardRoom"/></div>
+                <div class="form-group full"><label>Topics to NEVER write about (blacklist)</label><input type="text" id="cfg_blacklist_topics" placeholder="greenwashing, crypto (comma separated)"/></div>
+              </div>
+            </div>
+
+            <!-- Schedule -->
+            <div class="config-section">
+              <div class="config-section-title">Automatic Schedule</div>
+              <div class="config-grid">
+                <div class="form-group">
+                  <label>Run on which day</label>
+                  <select id="cfg_schedule_day">
+                    <option value="1">Monday</option><option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option><option value="4">Thursday</option>
+                    <option value="5">Friday</option><option value="6">Saturday</option>
+                    <option value="0">Sunday</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>At what time (your local time)</label>
+                  <input type="time" id="cfg_schedule_time" value="07:00"/>
+                </div>
+                <div class="form-group full">
+                  <div class="field-hint" id="cfgCronPreview" style="padding:8px 12px;background:#F4F5F9;border-radius:8px;">
+                    UTC cron will update after save
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- n8n -->
+            <div class="config-section">
+              <div class="config-section-title">n8n Webhook</div>
+              <div class="config-grid">
+                <div class="form-group full">
+                  <label>n8n Webhook URL</label>
+                  <input type="url" id="cfg_n8n_webhook_url" placeholder="https://your-n8n.com/webhook/contentiq-trigger"/>
+                  <div class="field-hint">In n8n → open your workflow → click Webhook node → copy the URL from "Production URL"</div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-save" onclick="saveConfig()">Save Configuration</button>
+          </div>
+        </div>
+
+        <!-- Right sidebar help -->
+        <div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">How it works</div></div>
+            <div class="card-body" style="font-size:13px;line-height:1.7;color:var(--muted);">
+              <p style="margin-bottom:12px;">All config you set here is saved to MongoDB and <strong style="color:var(--text);">sent to your n8n workflow</strong> as the payload when the workflow runs.</p>
+              <p style="margin-bottom:12px;">This means each user's content is <strong style="color:var(--text);">completely isolated</strong> — the AI generates topics and posts based on your ICP, voice, and competitors only.</p>
+              <p style="margin-bottom:12px;">The <strong style="color:var(--text);">schedule</strong> you set here tells n8n when to automatically run the workflow for your account (converted to UTC internally).</p>
+              <p>The <strong style="color:var(--text);">webhook URL</strong> lets you manually trigger a run from the "Run Workflow" tab.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB: RUN WORKFLOW
+    ══════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-trigger">
+      <div style="max-width:600px;margin:0 auto;">
+
+        <!-- Manual Trigger -->
+        <div class="trigger-box">
+          <div class="trigger-title">Run Workflow Manually</div>
+          <div class="trigger-sub">
+            This sends your full profile config to n8n and starts the content generation process right now — without waiting for the scheduled time.
+          </div>
+          <button class="btn-trigger" id="triggerBtn" onclick="triggerWorkflow()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Trigger Workflow Now
+          </button>
+          <div class="trigger-status" id="triggerStatus"></div>
+        </div>
+
+        <!-- What happens -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-head"><div class="card-title">What happens when you trigger</div></div>
+          <div class="card-body" style="font-size:13.5px;line-height:1.8;color:var(--muted);">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:12px;align-items:start;">
+                <div style="width:24px;height:24px;background:rgba(232,25,75,.1);color:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">1</div>
+                <div><strong style="color:var(--text);">Topic Generation</strong> — n8n fetches ESG news RSS feeds, scrapes competitor content, and uses Gemini AI to generate 30 scored topics based on your ICP and target region.</div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:start;">
+                <div style="width:24px;height:24px;background:rgba(232,25,75,.1);color:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">2</div>
+                <div><strong style="color:var(--text);">Review Window (24 hours)</strong> — Topics appear in your "Review Topics" tab. Green-light your top picks. After 24 hours, n8n auto-selects the top 5 by score.</div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:start;">
+                <div style="width:24px;height:24px;background:rgba(232,25,75,.1);color:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">3</div>
+                <div><strong style="color:var(--text);">Post Generation</strong> — For each approved topic, 3 LinkedIn post variations are written in your voice style, then QC-checked by AI.</div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:start;">
+                <div style="width:24px;height:24px;background:rgba(232,25,75,.1);color:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">4</div>
+                <div><strong style="color:var(--text);">Posts Ready</strong> — Posts appear in "Generated Posts" tab and you get a Slack/email notification. Copy the recommended version and publish!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule summary -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Your Automatic Schedule</div></div>
+          <div class="card-body">
+            <div class="schedule-info" style="margin-bottom:14px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <div id="scheduleDisplay2">Loading...</div>
+            </div>
+            <div style="font-size:12.5px;color:var(--muted);line-height:1.6;">
+              To change your schedule, go to <strong style="color:var(--text);">Profile Config → Schedule</strong> and update the day and time. The n8n cron expression is automatically calculated from your timezone.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /.page-wrap -->
+</div><!-- /.main -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const API_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://your-backend-url.com';  // update when deploying
+
+// ── Auth — get token from storage ────────────────────────────────────────
+function getToken() {
+  return localStorage.getItem('contentiq_token') || sessionStorage.getItem('contentiq_token');
+}
+function getUser() {
+  const raw = localStorage.getItem('contentiq_user') || sessionStorage.getItem('contentiq_user');
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// ── Redirect to login if not authenticated ────────────────────────────────
+if (!getToken()) {
+  window.location.href = 'login.html';
+}
+
+// ── Authenticated fetch helper ────────────────────────────────────────────
+async function apiFetch(path, options = {}) {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (res.status === 401) {
+    // Token expired — redirect to login
+    localStorage.clear(); sessionStorage.clear();
+    window.location.href = 'login.html';
+    return;
+  }
+  return res;
+}
+
+// ── Sidebar collapse ──────────────────────────────────────────────────────
+let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+function toggleSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  document.getElementById('mainContent').classList.toggle('sb-collapsed', sidebarCollapsed);
+  localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+}
+function openMobileSidebar() {
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+if (sidebarCollapsed) {
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.getElementById('mainContent').classList.add('sb-collapsed');
+}
+
+// ── User dropdown ─────────────────────────────────────────────────────────
+function toggleDropdown() {
+  document.getElementById('dropdownMenu').classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.user-dropdown') && !e.target.closest('.user-card')) {
+    document.getElementById('dropdownMenu').classList.remove('open');
+  }
+});
+function handleLogout() {
+  localStorage.clear(); sessionStorage.clear();
+  window.location.href = 'login.html';
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+const TAB_TITLES = {overview:'Overview',topics:'Review Topics',posts:'Generated Posts',config:'Profile Config',trigger:'Run Workflow'};
+function switchTab(name, clickedEl) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  // Update sidebar nav items
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (clickedEl && clickedEl.classList.contains('nav-item')) clickedEl.classList.add('active');
+  // Update top tabs
+  document.querySelectorAll('.p-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.getElementById('pageTitle').textContent = TAB_TITLES[name] || name;
+  closeMobileSidebar();
+  // Lazy-load tab data
+  if (name === 'topics') loadTopics();
+  if (name === 'posts') loadPosts();
+  if (name === 'config') loadConfig();
+}
+
+// ── Toast notification ────────────────────────────────────────────────────
+function showToast(msg, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ── Load user info into UI ────────────────────────────────────────────────
+function populateUserUI(user) {
+  const name = `${user.first} ${user.last}`;
+  const initials = `${user.first?.[0]||''}${user.last?.[0]||''}`.toUpperCase();
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarEmail').textContent = user.email;
+  document.getElementById('topbarName').textContent = name;
+  document.getElementById('sidebarAvatar').textContent = initials;
+  document.getElementById('topbarAvatar').textContent = initials;
+
+  // Schedule display
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const day = days[parseInt(user.config?.schedule_day || 1)];
+  const time = user.config?.schedule_time || '07:00';
+  const tz = user.timezone || 'your timezone';
+  const schedText = `Every ${day} at ${time} (${tz}) — automated run`;
+  document.getElementById('scheduleDisplay').textContent = schedText;
+  document.getElementById('scheduleDisplay2').textContent = schedText;
+}
+
+// ── Load dashboard stats ──────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const res = await apiFetch('/api/stats');
+    const data = await res.json();
+    document.getElementById('statTopics').textContent = data.topics_total || 0;
+    document.getElementById('statApproved').textContent = data.topics_approved || 0;
+    document.getElementById('statPosts').textContent = data.posts_total || 0;
+    document.getElementById('statRecommended').textContent = data.posts_recommended || 0;
+    document.getElementById('statApprovalRate').textContent = `Approval rate: ${data.approval_rate || 0}%`;
+
+    // Recent topics list
+    if (data.recent_topics && data.recent_topics.length > 0) {
+      const container = document.getElementById('recentTopicsList');
+      container.innerHTML = data.recent_topics.map(t => `
+        <div class="act-item">
+          <div class="act-av" style="background:${t.content_type==='FRESH'?'rgba(59,130,246,.15)':t.content_type==='EVERGREEN'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)'};">
+            ${t.content_type==='FRESH'?'📰':t.content_type==='EVERGREEN'?'🌿':'🎯'}
+          </div>
+          <div>
+            <div class="act-text">${escapeHtml(t.topic_title)}</div>
+            <div class="act-time">${t.content_type} · Score ${t.score} · ${formatDate(t.created_at)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Stats load error:', err);
+  }
+}
+
+// ── Load Topics ───────────────────────────────────────────────────────────
+async function loadTopics() {
+  const container = document.getElementById('topicsTableWrap');
+  container.innerHTML = '<div style="padding:40px;text-align:center;"><div class="skeleton" style="height:20px;margin-bottom:12px;"></div><div class="skeleton" style="height:20px;width:80%;margin:0 auto;"></div></div>';
+
+  try {
+    const res = await apiFetch('/api/topics');
+    const topics = await res.json();
+
+    if (!topics.length) {
+      container.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><div class="empty-title">No topics yet</div><div class="empty-sub">Run the workflow to generate topics</div></div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table class="topic-table">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th>Topic</th>
+              <th>Type</th>
+              <th>Tier</th>
+              <th style="text-align:center;">Score</th>
+              <th style="text-align:center;">Green Light</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${topics.map((t, i) => `
+              <tr>
+                <td data-label="Rank" style="color:var(--muted);font-weight:700;">${i+1}</td>
+                <td data-label="Topic">
+                  <div style="font-weight:600;color:var(--text);margin-bottom:3px;">${escapeHtml(t.topic_title)}</div>
+                  <div style="font-size:12px;color:var(--muted);">${escapeHtml((t.post_angle||'').substring(0,80))}${t.post_angle?.length>80?'...':''}</div>
+                </td>
+                <td data-label="Type"><span class="badge badge-${(t.content_type||'').toLowerCase().replace(' ','')}">${t.content_type||'—'}</span></td>
+                <td data-label="Tier"><span class="badge badge-${(t.content_tier||'').toLowerCase()}">${t.content_tier||'—'}</span></td>
+                <td data-label="Score" style="text-align:center;">
+                  <span class="score-pill ${t.score>=80?'score-hi':t.score>=60?'score-mid':'score-lo'}">${t.score||0}</span>
+                </td>
+                <td data-label="Green Light" style="text-align:center;">
+                  <label class="gl-toggle">
+                    <input type="checkbox" ${t.GREEN_LIGHT?'checked':''} onchange="toggleGreenLight('${t._id}', this.checked)"/>
+                    <span class="gl-slider"></span>
+                  </label>
+                </td>
+                <td data-label="Status">
+                  <span style="font-size:12px;font-weight:600;color:${t.status==='APPROVED'?'var(--success)':t.status==='REJECTED'?'var(--danger)':'var(--muted)'};">
+                    ${t.status==='APPROVED'?'✓ Approved':t.status==='REJECTED'?'✗ Rejected':'Pending'}
+                  </span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="empty"><div class="empty-title">Error loading topics</div><div class="empty-sub">${err.message}</div></div>`;
+  }
+}
+
+// ── Toggle Green Light ────────────────────────────────────────────────────
+async function toggleGreenLight(topicId, value) {
+  try {
+    await apiFetch(`/api/topics/${topicId}/greenlight`, {
+      method: 'PATCH',
+      body: JSON.stringify({ GREEN_LIGHT: value })
+    });
+    showToast(value ? 'Topic approved ✓' : 'Topic unmarked', value ? 'success' : '');
+  } catch (err) {
+    showToast('Failed to update topic', 'error');
+  }
+}
+
+// ── Load Posts ────────────────────────────────────────────────────────────
+async function loadPosts() {
+  const container = document.getElementById('postsWrap');
+  container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">Loading posts...</div>';
+
+  try {
+    const res = await apiFetch('/api/posts');
+    const posts = await res.json();
+
+    if (!posts.length) {
+      container.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="empty-title">No posts generated yet</div><div class="empty-sub">Approve topics in "Review Topics" then run the workflow</div></div>`;
+      return;
+    }
+
+    container.innerHTML = posts.map((p, idx) => `
+      <div class="post-card">
+        <div class="post-card-head">
+          <div>
+            <div class="post-title">${escapeHtml(p.topic_title)}</div>
+            <div class="post-meta">
+              <span class="badge badge-${(p.content_type||'fresh').toLowerCase()}">${p.content_type||'FRESH'}</span>
+              &nbsp;·&nbsp; ${formatDate(p.generated_at)}
+              ${p.recommended ? '&nbsp;·&nbsp; <span style="color:var(--success);font-weight:700;">★ Recommended</span>' : ''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${p.overall_quality==='Pass'
+              ? '<span class="qc-pass"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> QC Pass</span>'
+              : '<span class="qc-pass qc-fail">QC Review</span>'
+            }
+          </div>
+        </div>
+
+        <!-- Post variation tabs -->
+        <div class="post-tabs">
+          ${p.v1_post?`<button class="post-tab ${p.recommended_reason?.includes('v1')||(!p.recommended_reason&&p.recommended)?'active':''}" onclick="showVariation('${idx}','v1',this)">Version 1</button>`:''}
+          ${p.v2_post?`<button class="post-tab" onclick="showVariation('${idx}','v2',this)">Version 2</button>`:''}
+          ${p.v3_post?`<button class="post-tab" onclick="showVariation('${idx}','v3',this)">Version 3</button>`:''}
+          ${p.final_post?`<button class="post-tab active" onclick="showVariation('${idx}','final',this)">Recommended</button>`:''}
+        </div>
+
+        <!-- Post body — stores all versions in data attributes -->
+        <div class="post-body" id="postBody_${idx}"
+          data-v1="${escapeAttr(p.v1_post||'')}"
+          data-v2="${escapeAttr(p.v2_post||'')}"
+          data-v3="${escapeAttr(p.v3_post||'')}"
+          data-final="${escapeAttr(p.final_post||p.v1_post||'')}"
+        >${escapeHtml(p.final_post||p.v1_post||'No content')}</div>
+
+        <div class="post-footer">
+          <div style="font-size:12px;color:var(--muted);">${p.recommended_reason?escapeHtml(p.recommended_reason.substring(0,80)):''}</div>
+          <button class="btn-copy" id="copyBtn_${idx}" onclick="copyPost('${idx}')">Copy Post</button>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    container.innerHTML = `<div class="empty"><div class="empty-title">Error loading posts</div><div class="empty-sub">${err.message}</div></div>`;
+  }
+}
+
+// Switch post variation tab
+function showVariation(idx, version, btn) {
+  const body = document.getElementById(`postBody_${idx}`);
+  body.textContent = body.dataset[version] || 'No content for this version';
+  // Update active tab
+  btn.closest('.post-tabs').querySelectorAll('.post-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Copy post to clipboard
+async function copyPost(idx) {
+  const body = document.getElementById(`postBody_${idx}`);
+  const btn = document.getElementById(`copyBtn_${idx}`);
+  try {
+    await navigator.clipboard.writeText(body.textContent);
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Post'; btn.classList.remove('copied'); }, 2000);
+  } catch {
+    showToast('Could not copy to clipboard', 'error');
+  }
+}
+
+// ── Load Config into form ─────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const res = await apiFetch('/api/config');
+    const data = await res.json();
+    const cfg = data.config || {};
+    const user = getUser() || {};
+
+    // Populate all fields
+    const fields = {
+      cfg_first: user.first || '',
+      cfg_last: user.last || '',
+      cfg_leader_name: cfg.leader_name || '',
+      cfg_timezone: data.timezone || 'Asia/Kolkata',
+      cfg_linkedin_url: cfg.linkedin_url || '',
+      cfg_company_website: cfg.company_website || '',
+      cfg_notify_email: cfg.notify_email || '',
+      cfg_target_service: cfg.target_service || '',
+      cfg_target_region: cfg.target_region || '',
+      cfg_icp_titles: cfg.icp_titles || '',
+      cfg_icp_description: cfg.icp_description || '',
+      cfg_voice_hook_style: cfg.voice_hook_style || '',
+      cfg_voice_sentence_len: cfg.voice_sentence_len || '',
+      cfg_voice_opinion_density: cfg.voice_opinion_density || '',
+      cfg_voice_vocabulary: cfg.voice_vocabulary || '',
+      cfg_voice_cta_pattern: cfg.voice_cta_pattern || '',
+      cfg_competitor_handles: cfg.competitor_handles || '',
+      cfg_blacklist_topics: cfg.blacklist_topics || '',
+      cfg_schedule_day: cfg.schedule_day || '1',
+      cfg_schedule_time: cfg.schedule_time || '07:00',
+      cfg_n8n_webhook_url: cfg.n8n_webhook_url || '',
+    };
+
+    Object.entries(fields).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    });
+
+    // Show UTC cron preview
+    if (cfg.utc_cron) {
+      document.getElementById('cfgCronPreview').textContent = `n8n UTC Cron: ${cfg.utc_cron} (auto-calculated from your timezone)`;
+    }
+  } catch (err) {
+    console.error('Config load error:', err);
+  }
+}
+
+// ── Save Config ───────────────────────────────────────────────────────────
+async function saveConfig() {
+  const config = {
+    leader_name: document.getElementById('cfg_leader_name').value.trim(),
+    linkedin_url: document.getElementById('cfg_linkedin_url').value.trim(),
+    company_website: document.getElementById('cfg_company_website').value.trim(),
+    notify_email: document.getElementById('cfg_notify_email').value.trim(),
+    target_service: document.getElementById('cfg_target_service').value.trim(),
+    target_region: document.getElementById('cfg_target_region').value.trim(),
+    icp_titles: document.getElementById('cfg_icp_titles').value.trim(),
+    icp_description: document.getElementById('cfg_icp_description').value.trim(),
+    voice_hook_style: document.getElementById('cfg_voice_hook_style').value.trim(),
+    voice_sentence_len: document.getElementById('cfg_voice_sentence_len').value.trim(),
+    voice_opinion_density: document.getElementById('cfg_voice_opinion_density').value.trim(),
+    voice_vocabulary: document.getElementById('cfg_voice_vocabulary').value.trim(),
+    voice_cta_pattern: document.getElementById('cfg_voice_cta_pattern').value.trim(),
+    competitor_handles: document.getElementById('cfg_competitor_handles').value.trim(),
+    blacklist_topics: document.getElementById('cfg_blacklist_topics').value.trim(),
+    schedule_day: document.getElementById('cfg_schedule_day').value,
+    schedule_time: document.getElementById('cfg_schedule_time').value,
+    n8n_webhook_url: document.getElementById('cfg_n8n_webhook_url').value.trim(),
+  };
+  const timezone = document.getElementById('cfg_timezone').value;
+
+  try {
+    const res = await apiFetch('/api/config', {
+      method: 'PUT',
+      body: JSON.stringify({ config, timezone })
+    });
+    const data = await res.json();
+    if (data.utc_cron) {
+      document.getElementById('cfgCronPreview').textContent = `n8n UTC Cron: ${data.utc_cron} (auto-calculated from your timezone)`;
+    }
+    showToast('Configuration saved successfully!', 'success');
+  } catch (err) {
+    showToast('Failed to save config', 'error');
+  }
+}
+
+// ── Trigger n8n Workflow ──────────────────────────────────────────────────
+async function triggerWorkflow() {
+  const btn = document.getElementById('triggerBtn');
+  const status = document.getElementById('triggerStatus');
+
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Triggering...`;
+
+  status.className = 'trigger-status show';
+  status.style.background = '#F4F5F9';
+  status.style.color = 'var(--muted)';
+  status.style.border = '1px solid var(--border)';
+  status.textContent = 'Sending request to n8n...';
+
+  try {
+    const res = await apiFetch('/api/trigger', { method: 'POST' });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error);
+
+    status.className = 'trigger-status show ok';
+    status.textContent = `✓ Workflow triggered successfully at ${new Date().toLocaleTimeString()}. Topics will appear in "Review Topics" within a few minutes.`;
+    showToast('Workflow triggered!', 'success');
+  } catch (err) {
+    status.className = 'trigger-status show err';
+    status.textContent = `✗ ${err.message || 'Failed to trigger. Check your n8n webhook URL in Profile Config.'}`;
+    showToast('Trigger failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Trigger Workflow Now`;
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  } catch { return ''; }
+}
+
+// ── App Init ──────────────────────────────────────────────────────────────
+async function init() {
+  // Load user from local storage first (fast)
+  const cachedUser = getUser();
+  if (cachedUser) populateUserUI(cachedUser);
+
+  // Then fetch fresh data from API
+  try {
+    const res = await apiFetch('/api/auth/me');
+    const user = await res.json();
+    // Merge config into user object
+    const cfgRes = await apiFetch('/api/config');
+    const cfgData = await cfgRes.json();
+    user.config = cfgData.config;
+    user.timezone = cfgData.timezone;
+
+    // Update storage with fresh data
+    const storage = localStorage.getItem('contentiq_token') ? localStorage : sessionStorage;
+    storage.setItem('contentiq_user', JSON.stringify(user));
+    populateUserUI(user);
+  } catch (err) {
+    console.error('Init error:', err);
+  }
+
+  // Load stats for overview tab
+  loadStats();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ContentIQ — Create Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;
+  background:linear-gradient(145deg,#E8194B 0%,#C5103A 40%,#A00D30 70%,#D41545 100%);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 16px;position:relative;overflow-x:hidden;
+}
+.shape-dots{position:absolute;top:8%;left:4%;width:180px;height:180px;opacity:.18;
+  background-image:radial-gradient(circle,white 1.5px,transparent 1.5px);background-size:14px 14px;}
+.shape-circle{position:absolute;width:280px;height:280px;border:2px solid rgba(255,255,255,.09);
+  border-radius:50%;top:-70px;right:-70px;}
+.shape-tri{position:absolute;bottom:0;left:0;width:0;height:0;
+  border-left:220px solid rgba(255,255,255,.04);border-top:220px solid transparent;}
+
+/* ── Card ── */
+.card{
+  background:white;border-radius:22px;padding:40px 38px;
+  width:100%;max-width:520px;z-index:10;
+  box-shadow:0 24px 80px rgba(0,0,0,.28);
+  animation:slideUp .4s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Logo ── */
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.logo-icon{width:38px;height:38px;background:#E8194B;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:17px;}
+.logo-text{font-size:20px;font-weight:800;color:#1A1D2E;}
+.logo-text em{color:#E8194B;font-style:normal;}
+
+/* ── Step Progress ── */
+.progress-bar{display:flex;align-items:center;margin-bottom:28px;gap:0;}
+.step-dot{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;transition:all .3s;
+  border:2px solid #E8EAF0;color:#B0B6CB;background:white;
+}
+.step-dot.active{background:#E8194B;border-color:#E8194B;color:white;}
+.step-dot.done{background:#10B981;border-color:#10B981;color:white;}
+.step-line{flex:1;height:2px;background:#E8EAF0;transition:background .3s;}
+.step-line.done{background:#10B981;}
+.steps-labels{display:flex;justify-content:space-between;margin-top:6px;margin-bottom:22px;}
+.step-label{font-size:11px;color:#B0B6CB;font-weight:600;text-align:center;flex:1;}
+.step-label.active{color:#E8194B;}
+.step-label.done{color:#10B981;}
+
+h1{font-size:22px;font-weight:800;color:#1A1D2E;margin-bottom:4px;}
+.step-desc{font-size:13.5px;color:#7B8297;margin-bottom:22px;}
+
+/* ── Form Fields ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{margin-bottom:14px;}
+label{display:block;font-size:13px;font-weight:600;color:#1A1D2E;margin-bottom:5px;}
+label span{color:#E8194B;}
+input,select,textarea{
+  width:100%;padding:11px 13px;border:1.5px solid #E8EAF0;
+  border-radius:10px;font-size:13.5px;font-family:inherit;
+  color:#1A1D2E;background:#FAFBFC;transition:all .2s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:#E8194B;background:white;box-shadow:0 0 0 3px rgba(232,25,75,.08);}
+textarea{resize:vertical;min-height:70px;}
+select{cursor:pointer;}
+.field-hint{font-size:11.5px;color:#9BA3BC;margin-top:4px;}
+.input-wrap{position:relative;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  cursor:pointer;color:#7B8297;background:none;border:none;padding:0;}
+.pw-toggle:hover{color:#1A1D2E;}
+
+/* ── Alerts ── */
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:14px;display:none;}
+.alert.show{display:block;}
+.alert-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;}
+.alert-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:12px;margin-top:10px;}
+.btn-back{flex:0 0 auto;padding:13px 22px;background:#F4F5F9;border:none;
+  border-radius:10px;color:#7B8297;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;}
+.btn-back:hover{background:#E8EAF0;color:#1A1D2E;}
+.btn-next{flex:1;padding:13px;background:#E8194B;border:none;
+  border-radius:10px;color:white;font-size:14px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-next:hover:not(:disabled){background:#C5103A;transform:translateY(-1px);box-shadow:0 6px 20px rgba(232,25,75,.3);}
+.btn-next:disabled{opacity:.7;cursor:not-allowed;transform:none;}
+.spinner{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.3);
+  border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Footer ── */
+.card-footer{text-align:center;margin-top:20px;font-size:13px;color:#7B8297;}
+.card-footer a{color:#E8194B;font-weight:600;text-decoration:none;}
+
+/* ── Section Dividers ── */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  color:#B0B6CB;margin:18px 0 12px;padding-bottom:6px;border-bottom:1px solid #F0F1F6;}
+
+/* ── Step panels ── */
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+
+/* ── Success screen ── */
+.success-screen{text-align:center;padding:20px 0;}
+.success-icon{width:64px;height:64px;background:#F0FDF4;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.success-icon svg{stroke:#10B981;width:32px;height:32px;}
+.success-title{font-size:22px;font-weight:800;color:#1A1D2E;margin-bottom:8px;}
+.success-sub{font-size:14px;color:#7B8297;margin-bottom:24px;}
+.btn-go{width:100%;padding:14px;background:#E8194B;border:none;border-radius:10px;
+  color:white;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;}
+.btn-go:hover{background:#C5103A;}
+
+/* ── Responsive ── */
+@media(max-width:520px){
+  .card{padding:28px 18px;}
+  .form-row{grid-template-columns:1fr;}
+  h1{font-size:20px;}
+}
+</style>
+</head>
+<body>
+<div class="shape-dots"></div>
+<div class="shape-circle"></div>
+<div class="shape-tri"></div>
+
+<div class="card">
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-icon">C</div>
+    <div class="logo-text">Content<em>IQ</em></div>
+  </div>
+
+  <!-- Step progress bar -->
+  <div class="progress-bar" id="progressBar">
+    <div class="step-dot active" id="dot1">1</div>
+    <div class="step-line" id="line1"></div>
+    <div class="step-dot" id="dot2">2</div>
+    <div class="step-line" id="line2"></div>
+    <div class="step-dot" id="dot3">3</div>
+    <div class="step-line" id="line3"></div>
+    <div class="step-dot" id="dot4">4</div>
+  </div>
+  <div class="steps-labels">
+    <div class="step-label active" id="lbl1">Account</div>
+    <div class="step-label" id="lbl2">Profile</div>
+    <div class="step-label" id="lbl3">Voice</div>
+    <div class="step-label" id="lbl4">Schedule</div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="alert alert-error" id="alertError"></div>
+  <div class="alert alert-success" id="alertSuccess"></div>
+
+  <!-- ── STEP 1: Account Details ── -->
+  <div class="step-panel active" id="step1">
+    <h1>Create your account</h1>
+    <p class="step-desc">Start with your login credentials</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="firstName">First name <span>*</span></label>
+        <input type="text" id="firstName" placeholder="Bhargavi"/>
+      </div>
+      <div class="form-group">
+        <label for="lastName">Last name <span>*</span></label>
+        <input type="text" id="lastName" placeholder="Rathi"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="email">Work email <span>*</span></label>
+      <input type="email" id="email" placeholder="you@company.com"/>
+    </div>
+    <div class="form-group">
+      <label for="password">Password <span>*</span></label>
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="Min 8 characters"/>
+        <button class="pw-toggle" type="button" onclick="togglePw('password')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="confirmPassword">Confirm password <span>*</span></label>
+      <div class="input-wrap">
+        <input type="password" id="confirmPassword" placeholder="Repeat password"/>
+        <button class="pw-toggle" type="button" onclick="togglePw('confirmPassword')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" onclick="goStep(2)">Continue →</button>
+    </div>
+    <div class="card-footer">Already have an account? <a href="login.html">Sign in</a></div>
+  </div>
+
+  <!-- ── STEP 2: LinkedIn / Company Profile ── -->
+  <div class="step-panel" id="step2">
+    <h1>Your LinkedIn profile</h1>
+    <p class="step-desc">Help the AI understand your audience and content focus</p>
+
+    <div class="form-group">
+      <label for="linkedinUrl">LinkedIn profile URL <span>*</span></label>
+      <input type="url" id="linkedinUrl" placeholder="https://linkedin.com/in/your-name"/>
+    </div>
+    <div class="form-group">
+      <label for="companyWebsite">Company website</label>
+      <input type="url" id="companyWebsite" placeholder="https://yourcompany.com"/>
+    </div>
+    <div class="form-group">
+      <label for="notifyEmail">Notification email <span>*</span></label>
+      <input type="email" id="notifyEmail" placeholder="alerts@yourcompany.com"/>
+      <div class="field-hint">Where to send Slack / email alerts when topics or posts are ready</div>
+    </div>
+
+    <div class="section-label">Target Audience (ICP)</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="targetService">Your service / product <span>*</span></label>
+        <input type="text" id="targetService" placeholder="ESG Reporting, BI Tools..."/>
+      </div>
+      <div class="form-group">
+        <label for="targetRegion">Target region <span>*</span></label>
+        <input type="text" id="targetRegion" placeholder="Asia Pacific, Southeast Asia..."/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="icpTitles">Ideal client job titles</label>
+      <input type="text" id="icpTitles" placeholder="CFO, CSO, Regional Director, CPO"/>
+    </div>
+    <div class="form-group">
+      <label for="icpDescription">ICP description</label>
+      <textarea id="icpDescription" placeholder="e.g. C-suite executives in APAC expanding into sustainability reporting compliance..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(1)">← Back</button>
+      <button class="btn-next" onclick="goStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Voice & Competitors ── -->
+  <div class="step-panel" id="step3">
+    <h1>Writing voice & competitors</h1>
+    <p class="step-desc">Train the AI to write in your style</p>
+
+    <div class="form-group">
+      <label for="voiceHookStyle">How do you open your posts?</label>
+      <input type="text" id="voiceHookStyle" placeholder="Opens with a bold data point or contrarian claim"/>
+    </div>
+    <div class="form-group">
+      <label for="voiceSentenceLen">Sentence style</label>
+      <input type="text" id="voiceSentenceLen" placeholder="Mix — 1-line hooks, 2-3 sentence paragraphs"/>
+    </div>
+    <div class="form-group">
+      <label for="voiceOpinionDensity">Opinion vs facts balance</label>
+      <input type="text" id="voiceOpinionDensity" placeholder="Moderate — facts + one clear POV per post"/>
+    </div>
+    <div class="form-group">
+      <label for="voiceVocabulary">Vocabulary style</label>
+      <input type="text" id="voiceVocabulary" placeholder="Professional but not academic"/>
+    </div>
+    <div class="form-group">
+      <label for="voiceCtaPattern">How do you end posts?</label>
+      <input type="text" id="voiceCtaPattern" placeholder="Usually ends with a question to the audience"/>
+    </div>
+
+    <div class="section-label">Competitors & Filters</div>
+    <div class="form-group">
+      <label for="competitorHandles">Competitor LinkedIn handles</label>
+      <input type="text" id="competitorHandles" placeholder="TMF Group, Vistra, BoardRoom (comma separated)"/>
+      <div class="field-hint">AI will monitor their content for gap analysis</div>
+    </div>
+    <div class="form-group">
+      <label for="blacklistTopics">Topics to never write about</label>
+      <input type="text" id="blacklistTopics" placeholder="greenwashing, crypto, politics (comma separated)"/>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(2)">← Back</button>
+      <button class="btn-next" onclick="goStep(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Schedule & n8n ── -->
+  <div class="step-panel" id="step4">
+    <h1>Set your schedule</h1>
+    <p class="step-desc">When should the AI automatically generate your weekly content?</p>
+
+    <div class="form-group">
+      <label for="timezone">Your timezone <span>*</span></label>
+      <select id="timezone">
+        <option value="Asia/Kolkata">India (IST — UTC+5:30)</option>
+        <option value="Asia/Singapore">Singapore (SGT — UTC+8)</option>
+        <option value="Asia/Tokyo">Japan (JST — UTC+9)</option>
+        <option value="Asia/Shanghai">China (CST — UTC+8)</option>
+        <option value="Asia/Jakarta">Indonesia (WIB — UTC+7)</option>
+        <option value="Asia/Kuala_Lumpur">Malaysia (MYT — UTC+8)</option>
+        <option value="Asia/Bangkok">Thailand (ICT — UTC+7)</option>
+        <option value="Asia/Dubai">UAE (GST — UTC+4)</option>
+        <option value="Europe/London">UK (GMT/BST)</option>
+        <option value="Europe/Paris">Europe CET (UTC+1)</option>
+        <option value="America/New_York">US Eastern (EST — UTC-5)</option>
+        <option value="America/Los_Angeles">US Pacific (PST — UTC-8)</option>
+        <option value="Australia/Sydney">Australia (AEDT — UTC+11)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="scheduleDay">Run on which day</label>
+        <select id="scheduleDay">
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+          <option value="0">Sunday</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="scheduleTime">At what time (your local time)</label>
+        <input type="time" id="scheduleTime" value="07:00"/>
+      </div>
+    </div>
+    <div class="field-hint" id="cronPreview" style="margin-top:-8px;margin-bottom:14px;padding:8px 12px;background:#F4F5F9;border-radius:8px;font-size:12px;color:#7B8297;">
+      UTC cron will be calculated automatically after save
+    </div>
+
+    <div class="section-label">n8n Webhook (optional — can set later)</div>
+    <div class="form-group">
+      <label for="n8nWebhook">n8n webhook URL</label>
+      <input type="url" id="n8nWebhook" placeholder="https://your-n8n.com/webhook/contentiq-trigger"/>
+      <div class="field-hint">Found in n8n → Webhook node → Copy URL. Used for manual trigger from dashboard.</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(3)">← Back</button>
+      <button class="btn-next" id="submitBtn" onclick="handleRegister()">
+        <div class="spinner" id="spinner"></div>
+        <span id="submitText">Create my account</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SUCCESS SCREEN ── -->
+  <div class="step-panel" id="stepSuccess">
+    <div class="success-screen">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="success-title">You're all set!</div>
+      <div class="success-sub">Your ContentIQ account is ready. Go to the dashboard to trigger your first content run.</div>
+      <button class="btn-go" onclick="window.location.href='dashboard.html'">Go to Dashboard →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const API_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://your-backend-url.com';  // update when deploying
+
+let currentStep = 1;
+const TOTAL_STEPS = 4;
+
+// ── Step navigation ───────────────────────────────────────────────────────
+function goStep(n) {
+  hideAlerts();
+
+  // Validate before moving forward
+  if (n > currentStep && !validateStep(currentStep)) return;
+
+  // Update panels
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`step${n}`).classList.add('active');
+
+  // Update progress dots and lines
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById(`dot${i}`);
+    const lbl = document.getElementById(`lbl${i}`);
+    dot.className = 'step-dot';
+    lbl.className = 'step-label';
+    if (i < n) { dot.classList.add('done'); lbl.classList.add('done'); dot.innerHTML = '✓'; }
+    else if (i === n) { dot.classList.add('active'); lbl.classList.add('active'); dot.textContent = i; }
+    else { dot.textContent = i; }
+
+    if (i < TOTAL_STEPS) {
+      document.getElementById(`line${i}`).className = `step-line${i < n ? ' done' : ''}`;
+    }
+  }
+  currentStep = n;
+
+  // Pre-fill notify email from account email
+  if (n === 2) {
+    const email = document.getElementById('email').value;
+    if (email && !document.getElementById('notifyEmail').value) {
+      document.getElementById('notifyEmail').value = email;
+    }
+  }
+}
+
+// ── Per-step validation ───────────────────────────────────────────────────
+function validateStep(step) {
+  if (step === 1) {
+    const first = document.getElementById('firstName').value.trim();
+    const last = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const pw = document.getElementById('password').value;
+    const pw2 = document.getElementById('confirmPassword').value;
+    if (!first || !last) { showError('Please enter your full name.'); return false; }
+    if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return false; }
+    if (pw.length < 8) { showError('Password must be at least 8 characters.'); return false; }
+    if (pw !== pw2) { showError('Passwords do not match.'); return false; }
+  }
+  if (step === 2) {
+    const linkedin = document.getElementById('linkedinUrl').value.trim();
+    const notify = document.getElementById('notifyEmail').value.trim();
+    const service = document.getElementById('targetService').value.trim();
+    const region = document.getElementById('targetRegion').value.trim();
+    if (!linkedin) { showError('LinkedIn profile URL is required.'); return false; }
+    if (!notify) { showError('Notification email is required.'); return false; }
+    if (!service || !region) { showError('Target service and region are required.'); return false; }
+  }
+  return true;
+}
+
+// ── Toggle password visibility ────────────────────────────────────────────
+function togglePw(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// ── Alert helpers ─────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('alertError');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('alertSuccess').classList.remove('show');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function showSuccess(msg) {
+  const el = document.getElementById('alertSuccess');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('alertError').classList.remove('show');
+}
+function hideAlerts() {
+  document.getElementById('alertError').classList.remove('show');
+  document.getElementById('alertSuccess').classList.remove('show');
+}
+
+// ── Main register handler ─────────────────────────────────────────────────
+async function handleRegister() {
+  if (!validateStep(4)) return;
+  hideAlerts();
+
+  const btn = document.getElementById('submitBtn');
+  const spinner = document.getElementById('spinner');
+  const text = document.getElementById('submitText');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  text.textContent = 'Creating account...';
+
+  // Gather all form data
+  const payload = {
+    email: document.getElementById('email').value.trim().toLowerCase(),
+    password: document.getElementById('password').value,
+    first: document.getElementById('firstName').value.trim(),
+    last: document.getElementById('lastName').value.trim(),
+    timezone: document.getElementById('timezone').value,
+    config: {
+      leader_name: `${document.getElementById('firstName').value.trim()} ${document.getElementById('lastName').value.trim()}`,
+      linkedin_url: document.getElementById('linkedinUrl').value.trim(),
+      company_website: document.getElementById('companyWebsite').value.trim(),
+      notify_email: document.getElementById('notifyEmail').value.trim(),
+      target_service: document.getElementById('targetService').value.trim(),
+      target_region: document.getElementById('targetRegion').value.trim(),
+      icp_description: document.getElementById('icpDescription').value.trim(),
+      icp_titles: document.getElementById('icpTitles').value.trim(),
+      competitor_handles: document.getElementById('competitorHandles').value.trim(),
+      blacklist_topics: document.getElementById('blacklistTopics').value.trim(),
+      voice_hook_style: document.getElementById('voiceHookStyle').value.trim(),
+      voice_sentence_len: document.getElementById('voiceSentenceLen').value.trim(),
+      voice_opinion_density: document.getElementById('voiceOpinionDensity').value.trim(),
+      voice_vocabulary: document.getElementById('voiceVocabulary').value.trim(),
+      voice_cta_pattern: document.getElementById('voiceCtaPattern').value.trim(),
+      n8n_webhook_url: document.getElementById('n8nWebhook').value.trim(),
+      schedule_day: document.getElementById('scheduleDay').value,
+      schedule_time: document.getElementById('scheduleTime').value,
+    }
+  };
+
+  try {
+    // Step 1: Register user
+    const regRes = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: payload.email, password: payload.password, first: payload.first, last: payload.last, timezone: payload.timezone })
+    });
+    const regData = await regRes.json();
+    if (!regRes.ok) { showError(regData.error || 'Registration failed.'); return; }
+
+    // Step 2: Log in to get token
+    const loginRes = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: payload.email, password: payload.password })
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) { showError('Account created but login failed. Please go to login page.'); return; }
+
+    const token = loginData.token;
+    localStorage.setItem('contentiq_token', token);
+    localStorage.setItem('contentiq_user', JSON.stringify(loginData.user));
+
+    // Step 3: Save full config
+    await fetch(`${API_URL}/api/config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ config: payload.config, timezone: payload.timezone })
+    });
+
+    // Show success screen
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('stepSuccess').classList.add('active');
+    document.getElementById('progressBar').style.display = 'none';
+    document.querySelectorAll('.steps-labels').forEach(el => el.style.display = 'none');
+
+  } catch (err) {
+    showError('Cannot reach server. Please check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    text.textContent = 'Create my account';
+  }
+}
+
+// ── If already logged in, go to dashboard ────────────────────────────────
+if (localStorage.getItem('contentiq_token') || sessionStorage.getItem('contentiq_token')) {
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>
