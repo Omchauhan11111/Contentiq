@@ -20,7 +20,7 @@ app.use(
     origin: process.env.FRONTEND_URL || "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // ── MongoDB Connection ────────────────────────
@@ -37,7 +37,9 @@ async function connectDB() {
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
     await db.collection("topics").createIndex({ user_id: 1, week: -1 });
     await db.collection("posts").createIndex({ user_id: 1, generated_at: -1 });
-    await db.collection("schedules").createIndex({ user_id: 1 }, { unique: true });
+    await db
+      .collection("schedules")
+      .createIndex({ user_id: 1 }, { unique: true });
     console.log("✅ Database indexes created");
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
@@ -74,7 +76,9 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     // Check if user already exists
-    const existing = await db.collection("users").findOne({ email: email.toLowerCase() });
+    const existing = await db
+      .collection("users")
+      .findOne({ email: email.toLowerCase() });
     if (existing) {
       return res.status(409).json({ error: "Email already registered" });
     }
@@ -107,12 +111,15 @@ app.post("/api/auth/register", async (req, res) => {
         voice_vocabulary: "",
         voice_cta_pattern: "",
         n8n_webhook_url: "",
-        schedule_day: "1",     // 1 = Monday
+        schedule_day: "1", // 1 = Monday
         schedule_time: "07:00",
       },
     });
 
-    res.status(201).json({ message: "Account created successfully", user_id: result.insertedId });
+    res.status(201).json({
+      message: "Account created successfully",
+      user_id: result.insertedId,
+    });
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ error: "Server error during registration" });
@@ -127,7 +134,9 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Email and password required" });
     }
 
-    const user = await db.collection("users").findOne({ email: email.toLowerCase() });
+    const user = await db
+      .collection("users")
+      .findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
@@ -139,9 +148,14 @@ app.post("/api/auth/login", async (req, res) => {
 
     // Generate JWT token valid for 7 days
     const token = jwt.sign(
-      { user_id: user._id.toString(), email: user.email, first: user.first, last: user.last },
+      {
+        user_id: user._id.toString(),
+        email: user.email,
+        first: user.first,
+        last: user.last,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
     );
 
     res.json({
@@ -166,7 +180,7 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
   try {
     const user = await db.collection("users").findOne(
       { _id: new ObjectId(req.user.user_id) },
-      { projection: { password_hash: 0 } } // Never return password hash
+      { projection: { password_hash: 0 } }, // Never return password hash
     );
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
@@ -182,10 +196,12 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 // GET /api/config — Get user's n8n config
 app.get("/api/config", authMiddleware, async (req, res) => {
   try {
-    const user = await db.collection("users").findOne(
-      { _id: new ObjectId(req.user.user_id) },
-      { projection: { config: 1, timezone: 1 } }
-    );
+    const user = await db
+      .collection("users")
+      .findOne(
+        { _id: new ObjectId(req.user.user_id) },
+        { projection: { config: 1, timezone: 1 } },
+      );
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ config: user.config, timezone: user.timezone });
   } catch (err) {
@@ -199,7 +215,11 @@ app.put("/api/config", authMiddleware, async (req, res) => {
     const { config, timezone } = req.body;
 
     // Calculate UTC cron expression from user's local time + timezone
-    const utcCron = calculateUTCCron(config.schedule_day, config.schedule_time, timezone);
+    const utcCron = calculateUTCCron(
+      config.schedule_day,
+      config.schedule_time,
+      timezone,
+    );
 
     await db.collection("users").updateOne(
       { _id: new ObjectId(req.user.user_id) },
@@ -209,7 +229,7 @@ app.put("/api/config", authMiddleware, async (req, res) => {
           timezone: timezone || "Asia/Kolkata",
           updated_at: new Date(),
         },
-      }
+      },
     );
 
     res.json({ message: "Config updated successfully", utc_cron: utcCron });
@@ -243,8 +263,14 @@ function calculateUTCCron(dayOfWeek, localTime, timezone) {
     let utcDay = parseInt(dayOfWeek);
 
     // Handle day rollover
-    if (utcHourVal < 0) { utcHourVal += 24; utcDay = (utcDay - 1 + 7) % 7; }
-    if (utcHourVal >= 24) { utcHourVal -= 24; utcDay = (utcDay + 1) % 7; }
+    if (utcHourVal < 0) {
+      utcHourVal += 24;
+      utcDay = (utcDay - 1 + 7) % 7;
+    }
+    if (utcHourVal >= 24) {
+      utcHourVal -= 24;
+      utcDay = (utcDay + 1) % 7;
+    }
 
     return `${minute} ${utcHourVal} * * ${utcDay}`;
   } catch {
@@ -264,7 +290,8 @@ app.get("/api/topics", authMiddleware, async (req, res) => {
     if (week) filter.week = week;
     if (status) filter.status = status;
 
-    const topics = await db.collection("topics")
+    const topics = await db
+      .collection("topics")
       .find(filter)
       .sort({ rank: 1, created_at: -1 })
       .toArray();
@@ -281,9 +308,15 @@ app.patch("/api/topics/:id/greenlight", authMiddleware, async (req, res) => {
     const { GREEN_LIGHT } = req.body;
     const result = await db.collection("topics").updateOne(
       { _id: new ObjectId(req.params.id), user_id: req.user.user_id },
-      { $set: { GREEN_LIGHT: Boolean(GREEN_LIGHT), status: GREEN_LIGHT ? "APPROVED" : "PENDING" } }
+      {
+        $set: {
+          GREEN_LIGHT: Boolean(GREEN_LIGHT),
+          status: GREEN_LIGHT ? "APPROVED" : "PENDING",
+        },
+      },
     );
-    if (result.matchedCount === 0) return res.status(404).json({ error: "Topic not found" });
+    if (result.matchedCount === 0)
+      return res.status(404).json({ error: "Topic not found" });
     res.json({ message: "Green light updated", GREEN_LIGHT });
   } catch (err) {
     res.status(500).json({ error: "Failed to update topic" });
@@ -293,10 +326,12 @@ app.patch("/api/topics/:id/greenlight", authMiddleware, async (req, res) => {
 // PATCH /api/topics/:id/reject — Reject a topic
 app.patch("/api/topics/:id/reject", authMiddleware, async (req, res) => {
   try {
-    await db.collection("topics").updateOne(
-      { _id: new ObjectId(req.params.id), user_id: req.user.user_id },
-      { $set: { GREEN_LIGHT: false, status: "REJECTED" } }
-    );
+    await db
+      .collection("topics")
+      .updateOne(
+        { _id: new ObjectId(req.params.id), user_id: req.user.user_id },
+        { $set: { GREEN_LIGHT: false, status: "REJECTED" } },
+      );
     res.json({ message: "Topic rejected" });
   } catch (err) {
     res.status(500).json({ error: "Failed to reject topic" });
@@ -314,7 +349,8 @@ app.get("/api/posts", authMiddleware, async (req, res) => {
     const filter = { user_id: req.user.user_id };
     if (week) filter.week = week;
 
-    const posts = await db.collection("posts")
+    const posts = await db
+      .collection("posts")
       .find(filter)
       .sort({ generated_at: -1 })
       .toArray();
@@ -333,15 +369,20 @@ app.get("/api/posts", authMiddleware, async (req, res) => {
 app.post("/api/trigger", authMiddleware, async (req, res) => {
   try {
     // Fetch full user config to send to n8n
-    const user = await db.collection("users").findOne(
-      { _id: new ObjectId(req.user.user_id) },
-      { projection: { password_hash: 0 } }
-    );
+    const user = await db
+      .collection("users")
+      .findOne(
+        { _id: new ObjectId(req.user.user_id) },
+        { projection: { password_hash: 0 } },
+      );
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const webhookUrl = user.config?.n8n_webhook_url;
     if (!webhookUrl) {
-      return res.status(400).json({ error: "No n8n webhook URL configured. Please set it in Profile Config." });
+      return res.status(400).json({
+        error:
+          "No n8n webhook URL configured. Please set it in Profile Config.",
+      });
     }
 
     // Send user config as payload to n8n webhook
@@ -363,10 +404,15 @@ app.post("/api/trigger", authMiddleware, async (req, res) => {
       throw new Error(`n8n returned HTTP ${response.status}`);
     }
 
-    res.json({ message: "Workflow triggered successfully", triggered_at: payload.triggered_at });
+    res.json({
+      message: "Workflow triggered successfully",
+      triggered_at: payload.triggered_at,
+    });
   } catch (err) {
     console.error("Trigger error:", err);
-    res.status(500).json({ error: `Failed to trigger workflow: ${err.message}` });
+    res
+      .status(500)
+      .json({ error: `Failed to trigger workflow: ${err.message}` });
   }
 });
 
@@ -379,15 +425,21 @@ app.get("/api/stats", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
 
-    const [topicsTotal, topicsApproved, postsTotal, postsRecommended] = await Promise.all([
-      db.collection("topics").countDocuments({ user_id: userId }),
-      db.collection("topics").countDocuments({ user_id: userId, GREEN_LIGHT: true }),
-      db.collection("posts").countDocuments({ user_id: userId }),
-      db.collection("posts").countDocuments({ user_id: userId, recommended: true }),
-    ]);
+    const [topicsTotal, topicsApproved, postsTotal, postsRecommended] =
+      await Promise.all([
+        db.collection("topics").countDocuments({ user_id: userId }),
+        db
+          .collection("topics")
+          .countDocuments({ user_id: userId, GREEN_LIGHT: true }),
+        db.collection("posts").countDocuments({ user_id: userId }),
+        db
+          .collection("posts")
+          .countDocuments({ user_id: userId, recommended: true }),
+      ]);
 
     // Latest 5 topics for activity feed
-    const recentTopics = await db.collection("topics")
+    const recentTopics = await db
+      .collection("topics")
       .find({ user_id: userId })
       .sort({ created_at: -1 })
       .limit(5)
@@ -398,7 +450,8 @@ app.get("/api/stats", authMiddleware, async (req, res) => {
       topics_approved: topicsApproved,
       posts_total: postsTotal,
       posts_recommended: postsRecommended,
-      approval_rate: topicsTotal > 0 ? Math.round((topicsApproved / topicsTotal) * 100) : 0,
+      approval_rate:
+        topicsTotal > 0 ? Math.round((topicsApproved / topicsTotal) * 100) : 0,
       recent_topics: recentTopics,
     });
   } catch (err) {
@@ -406,9 +459,17 @@ app.get("/api/stats", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("🚀 ContentIQ Backend Running Successfully");
+});
+
 // ── Health Check ──────────────────────────────
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "ContentIQ Backend", timestamp: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    service: "ContentIQ Backend",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ── Start Server ──────────────────────────────
