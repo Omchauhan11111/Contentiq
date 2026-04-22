@@ -1,9 +1,3 @@
-// =============================================
-// ContentIQ — n8n Internal API Routes (n8n_routes.js)
-// These endpoints are called BY n8n workflow, not by the frontend.
-// Protected by a shared secret (N8N_INTERNAL_SECRET in .env)
-// =============================================
-
 const { ObjectId } = require("mongodb");
 
 function n8nAuthMiddleware(req, res, next) {
@@ -15,7 +9,7 @@ function n8nAuthMiddleware(req, res, next) {
 }
 
 module.exports = function (app, db) {
-  // POST /api/n8n/config
+
   app.post("/api/n8n/config", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id } = req.body;
@@ -27,12 +21,10 @@ module.exports = function (app, db) {
       if (!user) return res.status(404).json({ error: "User not found" });
       res.json({ user_id: user._id.toString(), timezone: user.timezone, config: user.config });
     } catch (err) {
-      console.error("n8n config route error:", err);
       res.status(500).json({ error: "Failed to fetch user config" });
     }
   });
 
-  // POST /api/n8n/topics
   app.post("/api/n8n/topics", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id, topics } = req.body;
@@ -41,45 +33,42 @@ module.exports = function (app, db) {
       }
       const week = new Date().toISOString().split("T")[0].substring(0, 10);
 
-      // Deduplicate incoming topics by title fingerprint
       const seenTitles = new Set();
       const uniqueTopics = topics.filter((t) => {
-        const title = (t.topic_title || t["A — Topic Title"] || "").trim().toLowerCase();
+        const title = (t.topic_title || t["A \u2014 Topic Title"] || "").trim().toLowerCase();
         if (!title || seenTitles.has(title)) return false;
         seenTitles.add(title);
         return true;
       });
 
       const docs = uniqueTopics.map((t) => ({
-        user_id: user_id,
-        topic_title: t.topic_title || t["A — Topic Title"] || "",
+        user_id,
+        topic_title: t.topic_title || t["A \u2014 Topic Title"] || "",
         post_angle: t.post_angle || "",
-        content_type: t.content_type || t["B — Type"] || "FRESH",
-        content_tier: t.content_tier || t["C — Tier"] || "BROAD",
+        content_type: t.content_type || t["B \u2014 Type"] || "FRESH",
+        content_tier: t.content_tier || t["C \u2014 Tier"] || "BROAD",
         hook_type: t.hook_type || "",
-        score: Number(t.score || t["F — Score"] || 0),
-        icp_reason: t.icp_reason || t["D — Why It Fits ICP"] || "",
-        service_hook: t.service_hook || t["E — Service Hook"] || "",
+        score: Number(t.score || t["F \u2014 Score"] || 0),
+        icp_reason: t.icp_reason || t["D \u2014 Why It Fits ICP"] || "",
+        service_hook: t.service_hook || t["E \u2014 Service Hook"] || "",
         source: t.source || "",
         source_url: t.source_url || "",
         freshness_score: t.freshness_score || 0,
         GREEN_LIGHT: false,
         status: "PENDING",
-        week: week,
+        week,
         rank: t.rank || 99,
         created_at: new Date(),
       }));
 
       await db.collection("topics").deleteMany({ user_id, week });
       const result = await db.collection("topics").insertMany(docs);
-      res.json({ message: "Topics saved to MongoDB", inserted: result.insertedCount, week });
+      res.json({ message: "Topics saved", inserted: result.insertedCount, week });
     } catch (err) {
-      console.error("n8n write topics error:", err);
       res.status(500).json({ error: "Failed to write topics" });
     }
   });
 
-  // POST /api/n8n/greenlit-topics
   app.post("/api/n8n/greenlit-topics", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id } = req.body;
@@ -91,12 +80,10 @@ module.exports = function (app, db) {
         .toArray();
       res.json(topics);
     } catch (err) {
-      console.error("n8n greenlit topics error:", err);
       res.status(500).json({ error: "Failed to fetch green-lit topics" });
     }
   });
 
-  // POST /api/n8n/posts
   app.post("/api/n8n/posts", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id, posts } = req.body;
@@ -105,7 +92,7 @@ module.exports = function (app, db) {
       }
       const week = new Date().toISOString().split("T")[0].substring(0, 10);
 
-      // Deduplicate incoming posts by topic_title — fixes n8n Merge1 double-send bug
+      // Step 1: Deduplicate by topic_title — fixes n8n sending duplicates
       const seenTitles = new Set();
       const uniquePosts = posts.filter((p) => {
         const title = (p.topic_title || "").trim().toLowerCase();
@@ -114,36 +101,49 @@ module.exports = function (app, db) {
         return true;
       });
 
+      // Step 2: Map fields — n8n sends v1_insight/v2_perspective/v3_framework
       const docs = uniquePosts.map((p) => ({
-        user_id: user_id,
+        user_id,
         topic_id: p.topic_id || null,
         topic_title: p.topic_title || "",
         content_type: p.content_type || "FRESH",
         source: p.source || "",
-        v1_post: p.v1_post || p.variation_1 || "",
-        v2_post: p.v2_post || p.variation_2 || "",
-        v3_post: p.v3_post || p.variation_3 || "",
-        final_post: p.final_post || p.recommended_post || "",
-        overall_quality: p.overall_quality || "Pass",
-        recommended: Boolean(p.recommended),
+        // n8n field names mapped to DB field names
+        v1_post: p.v1_insight || p.v1_post || "",
+        v2_post: p.v2_perspective || p.v2_post || "",
+        v3_post: p.v3_framework || p.v3_post || "",
+        final_post: p.final_post || "",
+        final_version: p.final_version || "none",
+        overall_quality: p.overall_quality || "low",
+        recommended: p.recommended || "",
         recommended_reason: p.recommended_reason || "",
+        route: p.route || "review",
+        v1_passed: Boolean(p.v1_passed),
+        v2_passed: Boolean(p.v2_passed),
+        v3_passed: Boolean(p.v3_passed),
+        v1_issues: p.v1_issues || [],
+        v2_issues: p.v2_issues || [],
+        v3_issues: p.v3_issues || [],
         qc_note: p.qc_note || "",
-        week: week,
+        score: p.score || 0,
+        week,
         generated_at: new Date(),
       }));
 
-      // Delete existing posts for this user+week before inserting fresh ones
       await db.collection("posts").deleteMany({ user_id, week });
       const result = await db.collection("posts").insertMany(docs);
 
-      res.json({ message: "Posts saved to MongoDB", inserted: result.insertedCount, week, deduplicated: posts.length - uniquePosts.length });
+      res.json({
+        message: "Posts saved",
+        inserted: result.insertedCount,
+        deduplicated: posts.length - uniquePosts.length,
+        week
+      });
     } catch (err) {
-      console.error("n8n write posts error:", err);
       res.status(500).json({ error: "Failed to write posts" });
     }
   });
 
-  // GET /api/n8n/all-users
   app.get("/api/n8n/all-users", n8nAuthMiddleware, async (req, res) => {
     try {
       const users = await db.collection("users").find({}, {
@@ -153,10 +153,7 @@ module.exports = function (app, db) {
           "config.schedule_day": 1,
           "config.schedule_time": 1,
           "config.utc_cron": 1,
-          timezone: 1,
-          email: 1,
-          first: 1,
-          last: 1,
+          timezone: 1, email: 1, first: 1, last: 1,
         },
       }).toArray();
 
