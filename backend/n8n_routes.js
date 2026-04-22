@@ -6,7 +6,6 @@
 
 const { ObjectId } = require("mongodb");
 
-// Middleware: verify the n8n internal secret header
 function n8nAuthMiddleware(req, res, next) {
   const secret = req.headers["x-n8n-secret"];
   if (!secret || secret !== process.env.N8N_INTERNAL_SECRET) {
@@ -16,45 +15,42 @@ function n8nAuthMiddleware(req, res, next) {
 }
 
 module.exports = function (app, db) {
-  // POST /api/n8n/config — n8n fetches a user's full config
+  // POST /api/n8n/config
   app.post("/api/n8n/config", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id } = req.body;
       if (!user_id) return res.status(400).json({ error: "user_id required" });
-
-      const user = await db
-        .collection("users")
-        .findOne(
-          { _id: new ObjectId(user_id) },
-          { projection: { password_hash: 0 } }
-        );
-
+      const user = await db.collection("users").findOne(
+        { _id: new ObjectId(user_id) },
+        { projection: { password_hash: 0 } }
+      );
       if (!user) return res.status(404).json({ error: "User not found" });
-
-      // Return user_id + full config for n8n to use
-      res.json({
-        user_id: user._id.toString(),
-        timezone: user.timezone,
-        config: user.config,
-      });
+      res.json({ user_id: user._id.toString(), timezone: user.timezone, config: user.config });
     } catch (err) {
       console.error("n8n config route error:", err);
       res.status(500).json({ error: "Failed to fetch user config" });
     }
   });
 
-  // POST /api/n8n/topics — n8n saves generated topics to MongoDB
+  // POST /api/n8n/topics
   app.post("/api/n8n/topics", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id, topics } = req.body;
       if (!user_id || !Array.isArray(topics)) {
         return res.status(400).json({ error: "user_id and topics[] required" });
       }
-
       const week = new Date().toISOString().split("T")[0].substring(0, 10);
 
-      // Map topics to MongoDB documents with user_id
-      const docs = topics.map((t) => ({
+      // Deduplicate incoming topics by title fingerprint
+      const seenTitles = new Set();
+      const uniqueTopics = topics.filter((t) => {
+        const title = (t.topic_title || t["A — Topic Title"] || "").trim().toLowerCase();
+        if (!title || seenTitles.has(title)) return false;
+        seenTitles.add(title);
+        return true;
+      });
+
+      const docs = uniqueTopics.map((t) => ({
         user_id: user_id,
         topic_title: t.topic_title || t["A — Topic Title"] || "",
         post_angle: t.post_angle || "",
@@ -74,35 +70,25 @@ module.exports = function (app, db) {
         created_at: new Date(),
       }));
 
-      // Delete existing topics for this user this week (avoid duplicates on re-run)
       await db.collection("topics").deleteMany({ user_id, week });
       const result = await db.collection("topics").insertMany(docs);
-
-      res.json({
-        message: "Topics saved to MongoDB",
-        inserted: result.insertedCount,
-        week,
-      });
+      res.json({ message: "Topics saved to MongoDB", inserted: result.insertedCount, week });
     } catch (err) {
       console.error("n8n write topics error:", err);
       res.status(500).json({ error: "Failed to write topics" });
     }
   });
 
-  // POST /api/n8n/greenlit-topics — n8n fetches green-lit topics for a user
+  // POST /api/n8n/greenlit-topics
   app.post("/api/n8n/greenlit-topics", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id } = req.body;
       if (!user_id) return res.status(400).json({ error: "user_id required" });
-
       const week = new Date().toISOString().split("T")[0].substring(0, 10);
-
-      const topics = await db
-        .collection("topics")
+      const topics = await db.collection("topics")
         .find({ user_id, GREEN_LIGHT: true, week })
         .sort({ rank: 1 })
         .toArray();
-
       res.json(topics);
     } catch (err) {
       console.error("n8n greenlit topics error:", err);
@@ -110,17 +96,25 @@ module.exports = function (app, db) {
     }
   });
 
-  // POST /api/n8n/posts — n8n saves generated posts to MongoDB
+  // POST /api/n8n/posts
   app.post("/api/n8n/posts", n8nAuthMiddleware, async (req, res) => {
     try {
       const { user_id, posts } = req.body;
       if (!user_id || !Array.isArray(posts)) {
         return res.status(400).json({ error: "user_id and posts[] required" });
       }
-
       const week = new Date().toISOString().split("T")[0].substring(0, 10);
 
-      const docs = posts.map((p) => ({
+      // Deduplicate incoming posts by topic_title — fixes n8n Merge1 double-send bug
+      const seenTitles = new Set();
+      const uniquePosts = posts.filter((p) => {
+        const title = (p.topic_title || "").trim().toLowerCase();
+        if (!title || seenTitles.has(title)) return false;
+        seenTitles.add(title);
+        return true;
+      });
+
+      const docs = uniquePosts.map((p) => ({
         user_id: user_id,
         topic_id: p.topic_id || null,
         topic_title: p.topic_title || "",
@@ -138,61 +132,43 @@ module.exports = function (app, db) {
         generated_at: new Date(),
       }));
 
-      // Remove existing posts for this user this week (topic-level to avoid duplicates)
-      const topicTitles = docs.map(d => d.topic_title).filter(Boolean);
-      if (topicTitles.length > 0) {
-        await db.collection("posts").deleteMany({ user_id, week, topic_title: { $in: topicTitles } });
-      } else {
-        await db.collection("posts").deleteMany({ user_id, week });
-      }
+      // Delete existing posts for this user+week before inserting fresh ones
+      await db.collection("posts").deleteMany({ user_id, week });
       const result = await db.collection("posts").insertMany(docs);
 
-      res.json({
-        message: "Posts saved to MongoDB",
-        inserted: result.insertedCount,
-        week,
-      });
+      res.json({ message: "Posts saved to MongoDB", inserted: result.insertedCount, week, deduplicated: posts.length - uniquePosts.length });
     } catch (err) {
       console.error("n8n write posts error:", err);
       res.status(500).json({ error: "Failed to write posts" });
     }
   });
 
-  // GET /api/n8n/all-users — n8n fetches all users for scheduled multi-user run
-  // Used when n8n needs to loop through all users for the daily schedule
+  // GET /api/n8n/all-users
   app.get("/api/n8n/all-users", n8nAuthMiddleware, async (req, res) => {
     try {
-      const users = await db
-        .collection("users")
-        .find(
-          {},
-          {
-            projection: {
-              password_hash: 0,
-              "config.n8n_webhook_url": 1,
-              "config.schedule_day": 1,
-              "config.schedule_time": 1,
-              "config.utc_cron": 1,
-              timezone: 1,
-              email: 1,
-              first: 1,
-              last: 1,
-            },
-          }
-        )
-        .toArray();
+      const users = await db.collection("users").find({}, {
+        projection: {
+          password_hash: 0,
+          "config.n8n_webhook_url": 1,
+          "config.schedule_day": 1,
+          "config.schedule_time": 1,
+          "config.utc_cron": 1,
+          timezone: 1,
+          email: 1,
+          first: 1,
+          last: 1,
+        },
+      }).toArray();
 
-      res.json(
-        users.map((u) => ({
-          user_id: u._id.toString(),
-          email: u.email,
-          name: `${u.first} ${u.last}`,
-          timezone: u.timezone,
-          utc_cron: u.config?.utc_cron || "0 1 * * 1",
-          schedule_day: u.config?.schedule_day || "1",
-          schedule_time: u.config?.schedule_time || "07:00",
-        }))
-      );
+      res.json(users.map((u) => ({
+        user_id: u._id.toString(),
+        email: u.email,
+        name: `${u.first} ${u.last}`,
+        timezone: u.timezone,
+        utc_cron: u.config?.utc_cron || "0 1 * * 1",
+        schedule_day: u.config?.schedule_day || "1",
+        schedule_time: u.config?.schedule_time || "07:00",
+      })));
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch users" });
     }
