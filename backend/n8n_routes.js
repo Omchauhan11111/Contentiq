@@ -138,8 +138,13 @@ module.exports = function (app, db) {
         generated_at: new Date(),
       }));
 
-      // Remove existing posts for this user this week
-      await db.collection("posts").deleteMany({ user_id, week });
+      // Remove existing posts for this user this week (topic-level to avoid duplicates)
+      const topicTitles = docs.map(d => d.topic_title).filter(Boolean);
+      if (topicTitles.length > 0) {
+        await db.collection("posts").deleteMany({ user_id, week, topic_title: { $in: topicTitles } });
+      } else {
+        await db.collection("posts").deleteMany({ user_id, week });
+      }
       const result = await db.collection("posts").insertMany(docs);
 
       res.json({
